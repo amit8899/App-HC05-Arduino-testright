@@ -45,6 +45,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.amupys.testright2.fragments.ConcFragment;
 import com.amupys.testright2.fragments.DetailsFragment;
 import com.amupys.testright2.fragments.SpectraFragment;
 import com.google.android.material.tabs.TabLayout;
@@ -80,6 +81,7 @@ public class ledControl extends AppCompatActivity {
     private ArrayList<Float> valuesListAbs, valuesListIntensity, valuesListBlank;
     DetailsFragment detailsFragment;
     SpectraFragment spectraFragment;
+    ConcFragment concFragment;
     boolean show, forT;
     int mode; // 1 for blank, 2 for abs, 3 for intensity, 4 for auto
     private String[] permissions;
@@ -91,6 +93,7 @@ public class ledControl extends AppCompatActivity {
     Runnable runnable;
     Thread calculateThread;
     ArrayList<Double> arrayList = new ArrayList<>();
+    public static ArrayList<ProgramModel> programs = new ArrayList<>();
     RadioGroup radioGroup;
     private boolean isExposureValid = true;
 
@@ -234,6 +237,7 @@ public class ledControl extends AppCompatActivity {
 
         detailsFragment = new DetailsFragment();
         spectraFragment = new SpectraFragment();
+        concFragment = new ConcFragment();
 
         ViewPager2 viewPager = findViewById(R.id.viewpager);
         TabLayout tabLayout = findViewById(R.id.tab_layout);
@@ -242,7 +246,8 @@ public class ledControl extends AppCompatActivity {
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> {
                     if (position == 0) tab.setText("OD");
-                    else tab.setText("Spectra");
+                    else if (position == 1)tab.setText("Spectra");
+                    else tab.setText("Conc.");
                 }).attach();
 
         shareLogs = findViewById(R.id.share_logs);
@@ -722,6 +727,16 @@ public class ledControl extends AppCompatActivity {
                 msg(e.getMessage());
             }
 
+            ledControl.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try{
+                        concFragment.setValuesList(valuesListAbs);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+            });
             spectraFragment.receiveData(valuesListAbs);
         } else if (mode == 3) {
             try {
@@ -735,7 +750,7 @@ public class ledControl extends AppCompatActivity {
 
             spectraFragment.receiveData(valuesListIntensity);
         } else if(mode == 1) {
-            showToastOnlyOnce("Blank is taken");
+            showToastOnlyOnce("Blank successful");
             spectraFragment.receiveData(valuesListBlank);
 //                                        if(valuesListBlank.get(0) == 0)
 //                                            msg("Blank received 0");
@@ -953,14 +968,15 @@ public class ledControl extends AppCompatActivity {
         public Fragment createFragment(int position) {
             if (position == 0) {
                 return detailsFragment;
-            } else {
+            } else if (position == 1){
                 return spectraFragment;
-            }
+            }else
+                return concFragment;
         }
 
         @Override
         public int getItemCount() {
-            return 2;
+            return 3;
         }
     }
 
@@ -1016,6 +1032,7 @@ public class ledControl extends AppCompatActivity {
                 btnDis.setEnabled(true);
                 btnAuto.setEnabled(true);
 
+                mode = 5;
                 if(forT){
                     sendSignal("t");
 //                Log.e("onScanButtonClicked", "t");
